@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MathAI | Admin Panel</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        .header {
+            background: white;
+            border-radius: 20px;
+            padding: 20px 30px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 16px;
+            text-align: center;
+        }
+        .stat-card .number { font-size: 36px; font-weight: bold; color: #4f46e5; }
+        .table-container {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            overflow-x: auto;
+        }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e0e0e0; }
+        th { background: #f8f9fa; color: #4f46e5; }
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .btn-primary {
+            background: #4f46e5;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        @media (max-width: 768px) {
+            th, td { font-size: 12px; padding: 8px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-chart-line"></i> MathAI Admin Panel</h1>
+            <div>
+                <button class="btn-primary" onclick="exportToExcel()"><i class="fas fa-download"></i> Excel</button>
+                <button class="btn-danger" onclick="clearAllData()"><i class="fas fa-trash"></i> Tozalash</button>
+                <button class="btn-primary" onclick="window.location.href='/'"><i class="fas fa-home"></i> Bosh sahifa</button>
+            </div>
+        </div>
+        
+        <div class="stats-grid">
+            <div class="stat-card"><div class="number" id="totalStudents">0</div><div>O'quvchilar</div></div>
+            <div class="stat-card"><div class="number" id="totalTests">0</div><div>Jami testlar</div></div>
+            <div class="stat-card"><div class="number" id="avgScore">0%</div><div>O'rtacha ball</div></div>
+        </div>
+        
+        <div class="table-container">
+            <h3>📋 Test natijalari</h3>
+            <table>
+                <thead><tr><th>#</th><th>O'quvchi</th><th>Ball</th><th>Zaif mavzular</th><th>Vaqt</th><th>Sana</th></tr></thead>
+                <tbody id="resultsTable"></tbody>
+            </table>
+        </div>
+    </div>
+    
+    <script>
+        function loadData() {
+            const results = JSON.parse(localStorage.getItem("mathai_results")) || [];
+            const users = JSON.parse(localStorage.getItem("mathai_users")) || {};
+            
+            document.getElementById("totalStudents").innerText = Object.keys(users).length;
+            document.getElementById("totalTests").innerText = results.length;
+            let avg = results.length ? results.reduce((s,r) => s + (r.score/r.maxScore*100), 0) / results.length : 0;
+            document.getElementById("avgScore").innerText = Math.round(avg) + "%";
+            
+            const tbody = document.getElementById("resultsTable");
+            tbody.innerHTML = results.reverse().slice(0, 50).map((r,i) => `
+                <tr>
+                    <td>${i+1}</td>
+                    <td>${r.name}</td>
+                    <td>${r.score}/${r.maxScore}</td>
+                    <td>${r.weakTopics?.join(", ") || "-"}</td>
+                    <td>${r.timeSpent} sek</td>
+                    <td>${r.date}</td>
+                </tr>
+            `).join('');
+        }
+        
+        function clearAllData() {
+            if(confirm("⚠️ Barcha ma'lumotlar o'chiriladi! Davom etasizmi?")) {
+                localStorage.removeItem("mathai_results");
+                localStorage.removeItem("mathai_users");
+                loadData();
+                alert("✅ Tozalandi!");
+            }
+        }
+        
+        function exportToExcel() {
+            const results = JSON.parse(localStorage.getItem("mathai_results")) || [];
+            let csv = "№,O'quvchi,Ball,Zaif mavzular,Vaqt,Sana\n";
+            results.forEach((r,i) => {
+                csv += `${i+1},${r.name},${r.score}/${r.maxScore},"${r.weakTopics?.join(", ") || ""}",${r.timeSpent} sek,${r.date}\n`;
+            });
+            const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = "mathai_results.csv";
+            link.click();
+        }
+        
+        loadData();
+    </script>
+</body>
+</html>
